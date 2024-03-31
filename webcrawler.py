@@ -50,7 +50,7 @@ class WEBCRAWLER():
             i += 1
 
     def __extract_employees(self):
-        response = xml = requests.get('https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', verify=False)
+        response = requests.get('https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', verify=False)
         return response
 
     def __transform_employees(self, response):
@@ -62,12 +62,11 @@ class WEBCRAWLER():
         df.to_excel('funcionarios'+ os.sep +'Funcionarios.xlsx', index=None)
 
     def get_cabinet_table(self, payload) -> None:
-        #response = self.__extract_cabinet_table(payload)
-        #response = self.__transform_cabinet_table(response)
-        #response = self.__transform_df(response, format_in='html')
-        #self.__load_cabinet_table(response)
+        response = self.__extract_cabinet_table(payload)
+        response = self.__transform_cabinet_table(response)
+        response = self.__transform_df(response, format_in='html')
+        self.__load_cabinet_table(response)
         response = self.__extract_employees()
         response = self.__transform_employees(response)
-        print(response)
         response = self.__transform_df(response, format_in='xml')
         self.__load_employees_table(response)

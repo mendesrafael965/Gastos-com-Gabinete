@@ -1,6 +1,5 @@
 env/
 gabinetes/*.xlsx
-funcionarios/*.xlsx
 __pycache__
+funcionarios/*.xlsx
 testes.py
-main.ipynb
