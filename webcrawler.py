@@ -1,3 +1,4 @@
+from io import StringIO
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -16,12 +17,6 @@ class WEBCRAWLER():
         indicies_cabinet.append(equal_columns[equal_columns > indicies_cabinet[-1]][0])
         return indicies_cabinet
 
-    def get_cabinet_table(self, payload) -> None:
-        response = self.__extract_cabinet_table(payload)
-        response = self.__transform_cabinet_table(response)
-        response = self.__transform_df(response)
-        self.__load_cabinet_table(response)
-    
     def __extract_cabinet_table(self, payload):
         response = requests.post('https://www.saopaulo.sp.leg.br/transparencia/salarios-abertos/salarios-abertos/remuneracao-dos-servidores-e-afastados/', verify=False, data=payload).text
         return response
@@ -31,9 +26,12 @@ class WEBCRAWLER():
         result  = str(soup.find('table'))
         return result
     
-    def __transform_df(self, response):
-        result = pd.read_html(response, encoding='UTF-8')
-        result = result[0]
+    def __transform_df(self, response, format_in):
+        if format_in == 'html':
+            result = pd.read_html(response, encoding='UTF-8')
+            result = result[0]
+        elif format_in  == 'xml':
+            result = pd.read_xml(StringIO(response))
         return result
     
     def __load_cabinet_table(self, df) -> None:
@@ -50,3 +48,26 @@ class WEBCRAWLER():
             df_i.columns=col_names
             df_i.to_excel('gabinetes' + os.sep + file_name + '.xlsx', index=None)
             i += 1
+
+    def __extract_employees(self):
+        response = xml = requests.get('https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', verify=False)
+        return response
+
+    def __transform_employees(self, response):
+        response.encoding = response.apparent_encoding
+        result = response.text
+        return result
+    
+    def __load_employees_table(self, df) -> None:
+        df.to_excel('funcionarios'+ os.sep +'Funcionarios.xlsx', index=None)
+
+    def get_cabinet_table(self, payload) -> None:
+        #response = self.__extract_cabinet_table(payload)
+        #response = self.__transform_cabinet_table(response)
+        #response = self.__transform_df(response, format_in='html')
+        #self.__load_cabinet_table(response)
+        response = self.__extract_employees()
+        response = self.__transform_employees(response)
+        print(response)
+        response = self.__transform_df(response, format_in='xml')
+        self.__load_employees_table(response)
