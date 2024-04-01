@@ -17,7 +17,7 @@ class WEBCRAWLER():
         indicies_cabinet.append(equal_columns[equal_columns > indicies_cabinet[-1]][0])
         return indicies_cabinet
 
-    def __extract_table(self, objeto, payload=''):
+    def __extract(self, objeto, payload=''):
         if objeto == 'cabinet':
             response = requests.post(
                 'https://www.saopaulo.sp.leg.br/transparencia/salarios-abertos/salarios-abertos/remuneracao-dos-servidores-e-afastados/', 
@@ -29,11 +29,21 @@ class WEBCRAWLER():
                 'https://www.saopaulo.sp.leg.br/atividade-legislativa/gabinetes/', 
                 verify=False
                 ).text
+        elif objeto == 'employee':
+            response = requests.get(
+                'https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', 
+                verify=False)
+            
         return response
 
-    def __transform_cabinet_table(self, response):
-        soup = BeautifulSoup(response, 'html.parser')
-        result  = str(soup.find('table'))
+    def __transform(self, objeto, response):
+        if objeto == 'cabinet':
+            soup = BeautifulSoup(response, 'html.parser')
+            result  = str(soup.find('table'))
+        elif objeto == 'employee':
+            response.encoding = response.apparent_encoding
+            result = response.text
+    
         return result
     
     def __transform_df(self, response, format_in):
@@ -65,27 +75,18 @@ class WEBCRAWLER():
 
         elif objeto == 'employees':
             df.to_excel('funcionarios'+ os.sep +'Funcionarios.xlsx', index=None)
-
-    def __extract_employees(self):
-        response = requests.get('https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', verify=False)
-        return response
-
-    def __transform_employees(self, response):
-        response.encoding = response.apparent_encoding
-        result = response.text
-        return result
     
-    def get_cabinet_table(self, payload) -> None:
-        response = self.__extract_table(objeto='cabinet', payload=payload)
-        response = self.__transform_cabinet_table(response)
+    def start(self, payload) -> None:
+        response = self.__extract(objeto='cabinet', payload=payload)
+        response = self.__transform(objeto='cabinet', response=response)
         response = self.__transform_df(response, format_in='html')
         self.__load(response, objeto='cabinet')
 
-        response = self.__extract_employees()
-        response = self.__transform_employees(response)
+        response = self.__extract(objeto='employee')
+        response = self.__transform(objeto='employee', response=response)
         response = self.__transform_df(response, format_in='xml')
         self.__load(response, objeto='employees')
 
-        response = self.__extract_table(objeto='councilor')
+        response = self.__extract(objeto='councilor')
         response = self.__transform_df(response, format_in='html')
         self.__load(response, objeto='councilor')
