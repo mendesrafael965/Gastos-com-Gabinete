@@ -17,8 +17,18 @@ class WEBCRAWLER():
         indicies_cabinet.append(equal_columns[equal_columns > indicies_cabinet[-1]][0])
         return indicies_cabinet
 
-    def __extract_cabinet_table(self, payload):
-        response = requests.post('https://www.saopaulo.sp.leg.br/transparencia/salarios-abertos/salarios-abertos/remuneracao-dos-servidores-e-afastados/', verify=False, data=payload).text
+    def __extract_table(self, objeto, payload=''):
+        if objeto == 'cabinet':
+            response = requests.post(
+                'https://www.saopaulo.sp.leg.br/transparencia/salarios-abertos/salarios-abertos/remuneracao-dos-servidores-e-afastados/', 
+                verify=False, 
+                data=payload
+                ).text
+        elif objeto == 'councilor':
+            response = requests.get(
+                'https://www.saopaulo.sp.leg.br/atividade-legislativa/gabinetes/', 
+                verify=False
+                ).text
         return response
 
     def __transform_cabinet_table(self, response):
@@ -34,20 +44,27 @@ class WEBCRAWLER():
             result = pd.read_xml(StringIO(response))
         return result
     
-    def __load_cabinet_table(self, df) -> None:
-        new_name_columns = self.__rename_columns(df)
-        df.columns = new_name_columns
-        index_cabinet = self.__find_index_cabinet(df)
+    def __load(self, df, objeto) -> None:
+        if objeto == 'cabinet':
+            new_name_columns = self.__rename_columns(df)
+            df.columns = new_name_columns
+            index_cabinet = self.__find_index_cabinet(df)
 
-        i = 0
-        for i in range(len(index_cabinet)-1):
-            file_name = df.iloc[index_cabinet[i],0]
-            col_names = list(df.iloc[index_cabinet[i]+1].values)
+            i = 0
+            for i in range(len(index_cabinet)-1):
+                file_name = df.iloc[index_cabinet[i],0]
+                col_names = list(df.iloc[index_cabinet[i]+1].values)
 
-            df_i = df.iloc[index_cabinet[i]+2:index_cabinet[i+1]]
-            df_i.columns=col_names
-            df_i.to_excel('gabinetes' + os.sep + file_name + '.xlsx', index=None)
-            i += 1
+                df_i = df.iloc[index_cabinet[i]+2:index_cabinet[i+1]]
+                df_i.columns=col_names
+                df_i.to_excel('gabinetes' + os.sep + file_name + '.xlsx', index=None)
+                i += 1
+
+        elif objeto == 'councilor':
+            df.to_excel('gabinete_vereador'+ os.sep +'gabinete_vereador.xlsx', index=None)
+
+        elif objeto == 'employees':
+            df.to_excel('funcionarios'+ os.sep +'Funcionarios.xlsx', index=None)
 
     def __extract_employees(self):
         response = requests.get('https://www.saopaulo.sp.leg.br/static/transparencia/funcionarios/CMSP-XML-Funcionarios.xml', verify=False)
@@ -58,15 +75,17 @@ class WEBCRAWLER():
         result = response.text
         return result
     
-    def __load_employees_table(self, df) -> None:
-        df.to_excel('funcionarios'+ os.sep +'Funcionarios.xlsx', index=None)
-
     def get_cabinet_table(self, payload) -> None:
-        response = self.__extract_cabinet_table(payload)
+        response = self.__extract_table(objeto='cabinet', payload=payload)
         response = self.__transform_cabinet_table(response)
         response = self.__transform_df(response, format_in='html')
-        self.__load_cabinet_table(response)
+        self.__load(response, objeto='cabinet')
+
         response = self.__extract_employees()
         response = self.__transform_employees(response)
         response = self.__transform_df(response, format_in='xml')
-        self.__load_employees_table(response)
+        self.__load(response, objeto='employees')
+
+        response = self.__extract_table(objeto='councilor')
+        response = self.__transform_df(response, format_in='html')
+        self.__load(response, objeto='councilor')

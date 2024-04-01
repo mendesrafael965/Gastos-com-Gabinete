@@ -1,5 +1,6 @@
 env/
 gabinetes/*.xlsx
-__pycache__
 funcionarios/*.xlsx
+gabinete_vereador/*.xlsx
+__pycache__
 testes.py
